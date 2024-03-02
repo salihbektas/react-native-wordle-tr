@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import Toast from 'react-native-toast-message';
 import useInterval from 'use-interval';
+import Animated, {useSharedValue, useAnimatedStyle, withTiming, withSequence, withDelay} from 'react-native-reanimated'
 
 
 let words = require("./words.json")
@@ -29,6 +30,30 @@ function random() {
 }
 const answer = random()
 console.log(answer)
+
+function Tile({color, letter, order}) {
+
+  const oldColor = useRef('black')
+  const sh = useSharedValue({deg: 0, color:colors.black})
+
+  if(color !== oldColor.current){
+    oldColor.current = color
+    sh.value = withDelay(order*350, withSequence(withTiming({deg: 90, color:color === 'black' ? colors.darkGray : colors[color]}, {duration: 175}), withTiming({deg: 270, color:colors[color]}, {duration: 0}), withTiming({deg: 360, color:colors[color]}, {duration: 175}))) 
+  }
+
+  const animatedStyle = useAnimatedStyle(() => {
+    return {transform: [{rotateX: `${sh.value.deg}deg`}],
+            backgroundColor: sh.value.color,
+            borderColor: sh.value.color === colors.black ? colors.darkGray : sh.value.color}
+  })
+
+  return(
+    <Animated.View style={[styles.box(color), animatedStyle]}>
+      <Text style={styles.letter2} selectable={false}>{letter}</Text>
+    </Animated.View>
+  )
+  
+}
 
 export default function App() {
   const [state, setState] = useState({data: ['','','','','',''],colors:[['black','black','black','black','black'],['black','black','black','black','black'],['black','black','black','black','black'],['black','black','black','black','black'],['black','black','black','black','black'],['black','black','black','black','black']], row: 0})
@@ -133,9 +158,11 @@ export default function App() {
         }
       }
 
-      setYellowLetters(yellow)
-      setGreenLetters(green)
-      setGrayLetters(gray)
+      setTimeout(() => {
+        setYellowLetters(yellow)
+        setGreenLetters(green)
+        setGrayLetters(gray)
+      }, 1750)
 
       if(newState.colors[newState.row].every(color => color === 'green')){
         Toast.show({
@@ -208,9 +235,7 @@ export default function App() {
             <View style={styles.boardRow} key={row}>
               {[0,1,2,3,4].map(column => {
                 return(
-                  <View style={styles.box(state.colors[row][column])} key={column}>
-                    <Text style={styles.letter2} selectable={false}>{state.data[row].charAt(column)}</Text>
-                  </View>
+                  <Tile key={wordIndex*10 + column} letter={state.data[row].charAt(column)} color={state.colors[row][column]} order={column} />
                 )
               })}
             </View>
